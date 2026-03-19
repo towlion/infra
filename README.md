@@ -30,6 +30,8 @@ After `apply` completes, you need to point your domain to the provisioned namese
 - `ns2.digitalocean.com`
 - `ns3.digitalocean.com`
 
+For a root domain, set these as custom nameservers at your registrar. For a subdomain, add NS records for the subdomain prefix in the parent zone pointing to each of these.
+
 **AWS Route 53** assigns unique nameservers per hosted zone. These are only known after `apply` runs — there is no fixed set.
 
 **To configure your domain:**
