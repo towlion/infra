@@ -54,4 +54,5 @@ keys/                   # SSH keys (git-ignored)
 - The `cloud-init.sh` script runs as root on first boot. It must handle both AWS and DO device naming conventions.
 - The CLI passes variables to tofu via `-var` flags, not tfvars files.
 - DNS resources are count-gated on `var.domain != ""`. When `domain` is empty (default), no DNS resources are created.
+- DNS zones create root (`@`) and wildcard (`*`) A records. DigitalOcean uses fixed nameservers (`ns1-3.digitalocean.com`); AWS Route 53 assigns unique nameservers per hosted zone (only known after `apply`).
 - If a DigitalOcean domain already exists in the account, the user must `tofu import` it before applying.
