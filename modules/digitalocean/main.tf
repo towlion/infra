@@ -25,6 +25,29 @@ resource "digitalocean_volume_attachment" "data" {
   volume_id  = digitalocean_volume.data.id
 }
 
+resource "digitalocean_domain" "zone" {
+  count = var.domain != "" ? 1 : 0
+  name  = var.domain
+}
+
+resource "digitalocean_record" "root" {
+  count  = var.domain != "" ? 1 : 0
+  domain = digitalocean_domain.zone[0].id
+  type   = "A"
+  name   = "@"
+  value  = digitalocean_droplet.server.ipv4_address
+  ttl    = 300
+}
+
+resource "digitalocean_record" "wildcard" {
+  count  = var.domain != "" ? 1 : 0
+  domain = digitalocean_domain.zone[0].id
+  type   = "A"
+  name   = "*"
+  value  = digitalocean_droplet.server.ipv4_address
+  ttl    = 300
+}
+
 resource "digitalocean_firewall" "server" {
   name        = "${var.server_name}-firewall"
   droplet_ids = [digitalocean_droplet.server.id]

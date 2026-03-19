@@ -9,3 +9,7 @@ output "ssh_command" {
 output "bootstrap_command" {
   value = "scp -i keys/towlion bootstrap-server.sh root@${digitalocean_droplet.server.ipv4_address}:/root/ && ssh -i keys/towlion root@${digitalocean_droplet.server.ipv4_address} 'bash /root/bootstrap-server.sh'"
 }
+
+output "nameservers" {
+  value = var.domain != "" ? ["ns1.digitalocean.com", "ns2.digitalocean.com", "ns3.digitalocean.com"] : []
+}

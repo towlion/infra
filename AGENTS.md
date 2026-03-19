@@ -8,14 +8,14 @@ towlion-infra is a Bash CLI (`towlion-infra`) that wraps OpenTofu to provision a
 
 - `towlion-infra` — Bash entrypoint. Handles env loading, SSH key generation, and delegates to `tofu` commands.
 - `main.tf` — Root module that conditionally enables either `modules/aws` or `modules/digitalocean` based on the `provider` variable.
-- `modules/digitalocean/` — Droplet, block volume, firewall, SSH key.
-- `modules/aws/` — EC2 instance, EBS volume, security group, key pair.
+- `modules/digitalocean/` — Droplet, block volume, firewall, SSH key, optional DNS domain + records.
+- `modules/aws/` — EC2 instance, EBS volume, security group, key pair, optional Route 53 zone + records.
 - `cloud-init.sh` — User-data script that detects and mounts the data volume at `/data`.
 
 ## Key conventions
 
 - **Shell style**: Bash with `set -euo pipefail`. Use `die()` for fatal errors.
-- **Provider parity**: Both provider modules should provision equivalent resources and expose the same outputs (`server_ip`, `ssh_command`, `bootstrap_command`).
+- **Provider parity**: Both provider modules should provision equivalent resources and expose the same outputs (`server_ip`, `ssh_command`, `bootstrap_command`, `nameservers`).
 - **Credentials**: Stored in `.env.local` (git-ignored). The CLI sources this file via `load_env()`. Use standard provider env vars (`DIGITALOCEAN_TOKEN`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`).
 - **SSH keys**: Auto-generated Ed25519 keys stored in `keys/towlion` (git-ignored).
 - **OpenTofu**: Use `tofu` (not `terraform`). Required version >= 1.6.0.
@@ -53,3 +53,5 @@ keys/                   # SSH keys (git-ignored)
 - Both provider modules must expose identical output names. If you add an output to one, add it to the other.
 - The `cloud-init.sh` script runs as root on first boot. It must handle both AWS and DO device naming conventions.
 - The CLI passes variables to tofu via `-var` flags, not tfvars files.
+- DNS resources are count-gated on `var.domain != ""`. When `domain` is empty (default), no DNS resources are created.
+- If a DigitalOcean domain already exists in the account, the user must `tofu import` it before applying.

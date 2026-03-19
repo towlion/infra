@@ -9,3 +9,8 @@ variable "ssh_public_key" {
 variable "region" {
   type = string
 }
+
+variable "domain" {
+  type    = string
+  default = ""
+}

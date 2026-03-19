@@ -5,6 +5,7 @@ module "digitalocean" {
   server_name    = var.server_name
   ssh_public_key = var.ssh_public_key
   region         = var.region != "" ? var.region : "nyc3"
+  domain         = var.domain
 }
 
 module "aws" {
@@ -14,4 +15,5 @@ module "aws" {
   server_name    = var.server_name
   ssh_public_key = var.ssh_public_key
   region         = var.region != "" ? var.region : "us-east-1"
+  domain         = var.domain
 }

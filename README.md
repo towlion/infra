@@ -14,8 +14,11 @@ Each provider creates an equivalent stack:
 | Firewall | DO Firewall (22, 80, 443 inbound) | Security Group (22, 80, 443 inbound) |
 | SSH key | DO SSH Key | EC2 Key Pair |
 | Default region | `nyc3` | `us-east-1` |
+| DNS (optional) | DO Domain + records | Route 53 zone + records |
 
 A cloud-init script (`cloud-init.sh`) automatically detects, formats, and mounts the data volume at `/data`.
+
+When a `--domain` is provided, a DNS zone is created with root (`@`) and wildcard (`*`) A records pointing to the server IP. This covers `APP_DOMAIN`, `OPS_DOMAIN`, and `PREVIEW_DOMAIN` subdomains. After provisioning, point your domain's nameservers at your registrar to the values shown in `./towlion-infra output`.
 
 ## Prerequisites
 
@@ -46,7 +49,7 @@ AWS_SECRET_ACCESS_KEY=your_secret_key
 #### `init` -- Initialize infrastructure
 
 ```sh
-./towlion-infra init --provider <aws|digitalocean> [--region <region>]
+./towlion-infra init --provider <aws|digitalocean> [--region <region>] [--domain <domain>]
 ```
 
 Sets the cloud provider, generates an SSH key pair (stored in `keys/towlion`), and runs `tofu init`.
@@ -54,7 +57,7 @@ Sets the cloud provider, generates an SSH key pair (stored in `keys/towlion`), a
 #### `plan` -- Preview changes
 
 ```sh
-./towlion-infra plan [--region <region>]
+./towlion-infra plan [--region <region>] [--domain <domain>]
 ```
 
 Runs `tofu plan` to show what resources will be created, modified, or destroyed.
@@ -62,7 +65,7 @@ Runs `tofu plan` to show what resources will be created, modified, or destroyed.
 #### `apply` -- Provision infrastructure
 
 ```sh
-./towlion-infra apply [-y|--auto-approve] [--region <region>]
+./towlion-infra apply [-y|--auto-approve] [--region <region>] [--domain <domain>]
 ```
 
 Creates the server, data volume, firewall, and SSH key. Prints connection details on completion.
@@ -70,7 +73,7 @@ Creates the server, data volume, firewall, and SSH key. Prints connection detail
 #### `destroy` -- Tear down infrastructure
 
 ```sh
-./towlion-infra destroy [-y|--auto-approve] [--region <region>]
+./towlion-infra destroy [-y|--auto-approve] [--region <region>] [--domain <domain>]
 ```
 
 Destroys all provisioned resources.
@@ -89,7 +92,7 @@ Displays the current Terraform state, or indicates if no infrastructure is provi
 ./towlion-infra output
 ```
 
-Shows the server IP, SSH command, bootstrap command, and GitHub Actions secrets (`SERVER_HOST`, `SERVER_SSH_KEY`).
+Shows the server IP, SSH command, bootstrap command, GitHub Actions secrets (`SERVER_HOST`, `SERVER_SSH_KEY`), and DNS nameservers (when a domain is configured).
 
 ### Options
 
@@ -97,6 +100,7 @@ Shows the server IP, SSH command, bootstrap command, and GitHub Actions secrets 
 |---|---|
 | `--provider <aws\|digitalocean>` | Cloud provider (required for `init`) |
 | `--region <region>` | Override default region |
+| `--domain <domain>` | Root domain for DNS zone and records (e.g. `example.com`) |
 | `-y`, `--auto-approve` | Skip interactive approval (`apply`, `destroy`) |
 
 ## Typical workflow
@@ -105,11 +109,11 @@ Shows the server IP, SSH command, bootstrap command, and GitHub Actions secrets 
 # 1. Initialize with your provider
 ./towlion-infra init --provider digitalocean
 
-# 2. Preview what will be created
-./towlion-infra plan
+# 2. Preview what will be created (optionally with DNS)
+./towlion-infra plan --domain example.com
 
-# 3. Provision the server
-./towlion-infra apply
+# 3. Provision the server (with DNS)
+./towlion-infra apply --domain example.com
 
 # 4. Connect to the server
 ssh -i keys/towlion root@<server-ip>
@@ -126,7 +130,7 @@ towlion-infra           # CLI entrypoint
 cloud-init.sh           # User-data script for data volume setup
 main.tf                 # Root module — selects provider module
 variables.tf            # Input variables
-outputs.tf              # Server IP, SSH command, bootstrap command
+outputs.tf              # Server IP, SSH command, bootstrap command, nameservers
 providers.tf            # Provider configuration
 modules/
   aws/                  # AWS resources (EC2, EBS, SG, key pair)

@@ -9,3 +9,7 @@ output "ssh_command" {
 output "bootstrap_command" {
   value = "scp -i keys/towlion bootstrap-server.sh root@${aws_instance.server.public_ip}:/root/ && ssh -i keys/towlion root@${aws_instance.server.public_ip} 'bash /root/bootstrap-server.sh'"
 }
+
+output "nameservers" {
+  value = var.domain != "" ? aws_route53_zone.zone[0].name_servers : []
+}

@@ -87,3 +87,26 @@ resource "aws_volume_attachment" "data" {
   volume_id   = aws_ebs_volume.data.id
   instance_id = aws_instance.server.id
 }
+
+resource "aws_route53_zone" "zone" {
+  count = var.domain != "" ? 1 : 0
+  name  = var.domain
+}
+
+resource "aws_route53_record" "root" {
+  count   = var.domain != "" ? 1 : 0
+  zone_id = aws_route53_zone.zone[0].zone_id
+  name    = var.domain
+  type    = "A"
+  ttl     = 300
+  records = [aws_instance.server.public_ip]
+}
+
+resource "aws_route53_record" "wildcard" {
+  count   = var.domain != "" ? 1 : 0
+  zone_id = aws_route53_zone.zone[0].zone_id
+  name    = "*.${var.domain}"
+  type    = "A"
+  ttl     = 300
+  records = [aws_instance.server.public_ip]
+}

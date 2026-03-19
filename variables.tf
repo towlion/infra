@@ -24,3 +24,9 @@ variable "server_name" {
   type        = string
   default     = "towlion"
 }
+
+variable "domain" {
+  description = "Root domain for DNS zone and records (e.g. example.com). Leave empty to skip DNS."
+  type        = string
+  default     = ""
+}
