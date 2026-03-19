@@ -157,7 +157,13 @@ cmd_status() {
     echo "No infrastructure provisioned for $(get_provider)."
     return
   fi
-  tofu show -state="$sf"
+  local resources
+  resources="$(tofu state list -state="$sf" 2>/dev/null)"
+  if [ -z "$resources" ]; then
+    echo "No infrastructure provisioned for $(get_provider)."
+  else
+    echo "$resources"
+  fi
 }
 
 cmd_output() {
