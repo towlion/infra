@@ -96,7 +96,18 @@ When using AWS, create a dedicated IAM user with only the permissions needed to 
 
 The `Route53DNS` statement is only required when using the `--domain` flag. You can omit it if you don't need DNS management.
 
-To set up credentials: create an IAM user in the AWS console, attach the policy above, then generate an access key pair and add it to `.env.local`.
+To set up credentials:
+
+1. **Sign in** to the [AWS Management Console](https://console.aws.amazon.com/) and open the **IAM** console.
+2. **Create a custom policy** — go to **Policies > Create policy**, switch to the **JSON** tab, paste the policy above, click **Next**, and name it `TowlionInfraProvisioning`.
+3. **Create an IAM user** — go to **Users > Create user** and enter a username (e.g. `towlion-infra`).
+4. **Attach the policy** — on the permissions step, choose **Attach policies directly**, search for `TowlionInfraProvisioning`, and select it.
+5. **Create access keys** — open the new user, go to **Security credentials > Create access key**, select **Command Line Interface (CLI)**, and copy the access key ID and secret.
+6. **Add credentials to `.env.local`**:
+   ```
+   AWS_ACCESS_KEY_ID=<your-access-key-id>
+   AWS_SECRET_ACCESS_KEY=<your-secret-access-key>
+   ```
 
 ## Usage
 
