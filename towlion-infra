@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+ENV_FILE="$SCRIPT_DIR/.env.local"
+PROVIDER_FILE="$SCRIPT_DIR/.provider"
+KEY_DIR="$SCRIPT_DIR/keys"
+KEY_PATH="$KEY_DIR/towlion"
+
+# --- Helpers ---
+
+die() { echo "Error: $*" >&2; exit 1; }
+
+load_env() {
+  [ -f "$ENV_FILE" ] || die ".env.local not found. Create it with your cloud credentials."
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+  # DigitalOcean provider expects DIGITALOCEAN_TOKEN
+  if [ -n "${DIGITALOCEAN_KEY:-}" ]; then
+    export DIGITALOCEAN_TOKEN="$DIGITALOCEAN_KEY"
+  fi
+}
+
+get_provider() {
+  [ -f "$PROVIDER_FILE" ] || die "No provider configured. Run: ./towlion-infra init --provider <aws|digitalocean>"
+  cat "$PROVIDER_FILE"
+}
+
+ensure_ssh_key() {
+  if [ ! -f "$KEY_PATH" ]; then
+    echo "Generating SSH key at $KEY_PATH..."
+    mkdir -p "$KEY_DIR"
+    ssh-keygen -t ed25519 -f "$KEY_PATH" -N "" -C "towlion"
+  fi
+}
+
+tofu_vars() {
+  local provider
+  provider="$(get_provider)"
+  local region="${REGION:-}"
+  ensure_ssh_key
+  local pub_key
+  pub_key="$(cat "$KEY_PATH.pub")"
+
+  local vars=(-var "provider=$provider" -var "ssh_public_key=$pub_key")
+  if [ -n "$region" ]; then
+    vars+=(-var "region=$region")
+  fi
+  echo "${vars[@]}"
+}
+
+check_tofu() {
+  command -v tofu >/dev/null 2>&1 || die "OpenTofu (tofu) is not installed. Install it from https://opentofu.org"
+}
+
+# --- Commands ---
+
+cmd_init() {
+  local provider=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --provider) provider="$2"; shift 2 ;;
+      --region) REGION="$2"; shift 2 ;;
+      *) die "Unknown flag: $1" ;;
+    esac
+  done
+
+  [ -n "$provider" ] || die "Usage: ./towlion-infra init --provider <aws|digitalocean>"
+  [[ "$provider" == "aws" || "$provider" == "digitalocean" ]] || die "Provider must be 'aws' or 'digitalocean'"
+
+  check_tofu
+  load_env
+  echo "$provider" > "$PROVIDER_FILE"
+  echo "Provider set to: $provider"
+
+  ensure_ssh_key
+  tofu init
+  echo ""
+  echo "Initialized successfully. Next: ./towlion-infra plan"
+}
+
+cmd_plan() {
+  local region_flag=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --region) REGION="$2"; shift 2 ;;
+      *) die "Unknown flag: $1" ;;
+    esac
+  done
+
+  check_tofu
+  load_env
+  local provider
+  provider="$(get_provider)"
+  ensure_ssh_key
+  local pub_key
+  pub_key="$(cat "$KEY_PATH.pub")"
+
+  local cmd=(tofu plan -var "provider=$provider" -var "ssh_public_key=$pub_key")
+  if [ -n "${REGION:-}" ]; then
+    cmd+=(-var "region=$REGION")
+  fi
+  "${cmd[@]}"
+}
+
+cmd_apply() {
+  local auto_approve=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -y|--auto-approve) auto_approve="-auto-approve"; shift ;;
+      --region) REGION="$2"; shift 2 ;;
+      *) die "Unknown flag: $1" ;;
+    esac
+  done
+
+  check_tofu
+  load_env
+  local provider
+  provider="$(get_provider)"
+  ensure_ssh_key
+  local pub_key
+  pub_key="$(cat "$KEY_PATH.pub")"
+
+  local cmd=(tofu apply -var "provider=$provider" -var "ssh_public_key=$pub_key")
+  if [ -n "${REGION:-}" ]; then
+    cmd+=(-var "region=$REGION")
+  fi
+  if [ -n "$auto_approve" ]; then
+    cmd+=(-auto-approve)
+  fi
+  "${cmd[@]}"
+
+  echo ""
+  echo "=== Infrastructure provisioned ==="
+  cmd_output
+}
+
+cmd_destroy() {
+  local auto_approve=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -y|--auto-approve) auto_approve="-auto-approve"; shift ;;
+      --region) REGION="$2"; shift 2 ;;
+      *) die "Unknown flag: $1" ;;
+    esac
+  done
+
+  check_tofu
+  load_env
+  local provider
+  provider="$(get_provider)"
+  ensure_ssh_key
+  local pub_key
+  pub_key="$(cat "$KEY_PATH.pub")"
+
+  local cmd=(tofu destroy -var "provider=$provider" -var "ssh_public_key=$pub_key")
+  if [ -n "${REGION:-}" ]; then
+    cmd+=(-var "region=$REGION")
+  fi
+  if [ -n "$auto_approve" ]; then
+    cmd+=(-auto-approve)
+  fi
+  "${cmd[@]}"
+
+  echo ""
+  echo "Infrastructure destroyed."
+}
+
+cmd_status() {
+  check_tofu
+  if [ ! -f terraform.tfstate ] && [ ! -f .terraform/terraform.tfstate ]; then
+    echo "No infrastructure provisioned."
+    return
+  fi
+  load_env
+  tofu show
+}
+
+cmd_output() {
+  check_tofu
+  load_env
+
+  local ip ssh_cmd bootstrap_cmd
+  ip="$(tofu output -raw server_ip 2>/dev/null)" || { echo "No infrastructure provisioned."; return; }
+  ssh_cmd="$(tofu output -raw ssh_command 2>/dev/null)"
+  bootstrap_cmd="$(tofu output -raw bootstrap_command 2>/dev/null)"
+
+  echo ""
+  echo "  Server IP:    $ip"
+  echo "  SSH Key:      $KEY_PATH"
+  echo ""
+  echo "  Connect:      $ssh_cmd"
+  echo ""
+  echo "  Bootstrap:    $bootstrap_cmd"
+  echo ""
+  echo "  GitHub Secrets:"
+  echo "    SERVER_HOST = $ip"
+  echo "    SERVER_SSH_KEY = $(cat "$KEY_PATH")"
+  echo ""
+}
+
+# --- Main ---
+
+usage() {
+  cat <<EOF
+Usage: ./towlion-infra <command> [options]
+
+Commands:
+  init --provider <aws|digitalocean>   Initialize infrastructure
+  plan                                  Preview changes
+  apply [-y]                            Provision infrastructure
+  destroy [-y]                          Tear down infrastructure
+  status                                Show current state
+  output                                Display connection details
+
+Options:
+  --region <region>   Override default region (nyc3 for DO, us-east-1 for AWS)
+EOF
+}
+
+case "${1:-}" in
+  init)    shift; cmd_init "$@" ;;
+  plan)    shift; cmd_plan "$@" ;;
+  apply)   shift; cmd_apply "$@" ;;
+  destroy) shift; cmd_destroy "$@" ;;
+  status)  shift; cmd_status "$@" ;;
+  output)  shift; cmd_output "$@" ;;
+  -h|--help|help) usage ;;
+  "") usage; exit 1 ;;
+  *) die "Unknown command: $1. Run './towlion-infra --help' for usage." ;;
+esac

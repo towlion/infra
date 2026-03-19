@@ -1,0 +1,9 @@
+.env.local
+*.tfstate
+*.tfstate.*
+.terraform/
+.tofu/
+keys/
+*.auto.tfvars
+.terraform.lock.hcl
+.provider
