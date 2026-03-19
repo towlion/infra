@@ -145,7 +145,7 @@ To set up credentials:
 #### `init` -- Initialize infrastructure
 
 ```sh
-./towlion-infra init --provider <aws|digitalocean> [--region <region>] [--domain <domain>]
+./towlion-infra init --provider <aws|digitalocean>
 ```
 
 Sets the cloud provider, generates an SSH key pair (stored in `keys/towlion`), and runs `tofu init`.
