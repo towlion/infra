@@ -20,6 +20,27 @@ A cloud-init script (`cloud-init.sh`) automatically detects, formats, and mounts
 
 When a `--domain` is provided, a DNS zone is created with root (`@`) and wildcard (`*`) A records pointing to the server IP. This covers `APP_DOMAIN`, `OPS_DOMAIN`, and `PREVIEW_DOMAIN` subdomains. After provisioning, point your domain's nameservers at your registrar to the values shown in `./towlion-infra output`.
 
+### DNS configuration
+
+After `apply` completes, you need to point your domain to the provisioned nameservers at your domain registrar.
+
+**DigitalOcean** uses fixed nameservers:
+
+- `ns1.digitalocean.com`
+- `ns2.digitalocean.com`
+- `ns3.digitalocean.com`
+
+**AWS Route 53** assigns unique nameservers per hosted zone. These are only known after `apply` runs — there is no fixed set.
+
+**To configure your domain:**
+
+1. Run `./towlion-infra output` and copy the nameservers listed.
+2. Log in to your domain registrar (e.g. Namecheap, Cloudflare, GoDaddy).
+3. Find the domain's DNS or nameserver settings and switch to **custom nameservers**.
+4. Enter the nameservers from step 1.
+
+DNS propagation typically takes a few minutes but can take up to 48 hours.
+
 ## Prerequisites
 
 - [OpenTofu](https://opentofu.org) >= 1.6.0
