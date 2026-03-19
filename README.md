@@ -35,9 +35,16 @@ After `apply` completes, you need to point your domain to the provisioned namese
 **To configure your domain:**
 
 1. Run `./towlion-infra output` and copy the nameservers listed.
-2. Log in to your domain registrar (e.g. Namecheap, Cloudflare, GoDaddy).
-3. Find the domain's DNS or nameserver settings and switch to **custom nameservers**.
-4. Enter the nameservers from step 1.
+
+2. **Root domain** (e.g. `example.com`):
+   1. Log in to your domain registrar (e.g. Namecheap, Cloudflare, GoDaddy).
+   2. Find the domain's DNS or nameserver settings and switch to **custom nameservers**.
+   3. Enter the nameservers from step 1.
+
+3. **Subdomain** (e.g. `wit.example.com`):
+   1. Log in to the DNS provider that manages the parent zone (`example.com`).
+   2. Add NS records for the subdomain prefix (e.g. `wit`) pointing to each nameserver from step 1.
+   3. This delegates only the subdomain to Route 53 / DigitalOcean, leaving the parent zone unchanged.
 
 DNS propagation typically takes a few minutes but can take up to 48 hours.
 
