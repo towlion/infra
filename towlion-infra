@@ -42,8 +42,8 @@ build_var_flags() {
   pub_key="$(cat "$KEY_PATH.pub")"
 
   TOFU_VAR_FLAGS=(-var "cloud_provider=$provider" -var "ssh_public_key=$pub_key")
-  [ -n "${REGION:-}" ] && TOFU_VAR_FLAGS+=(-var "region=$REGION")
-  [ -n "${DOMAIN:-}" ] && TOFU_VAR_FLAGS+=(-var "domain=$DOMAIN")
+  if [ -n "${REGION:-}" ]; then TOFU_VAR_FLAGS+=(-var "region=$REGION"); fi
+  if [ -n "${DOMAIN:-}" ]; then TOFU_VAR_FLAGS+=(-var "domain=$DOMAIN"); fi
 }
 
 state_file() {
