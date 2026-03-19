@@ -1,6 +1,6 @@
 module "digitalocean" {
   source = "./modules/digitalocean"
-  count  = var.provider == "digitalocean" ? 1 : 0
+  count  = var.cloud_provider == "digitalocean" ? 1 : 0
 
   server_name    = var.server_name
   ssh_public_key = var.ssh_public_key
@@ -10,7 +10,7 @@ module "digitalocean" {
 
 module "aws" {
   source = "./modules/aws"
-  count  = var.provider == "aws" ? 1 : 0
+  count  = var.cloud_provider == "aws" ? 1 : 0
 
   server_name    = var.server_name
   ssh_public_key = var.ssh_public_key

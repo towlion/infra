@@ -81,13 +81,7 @@ When using AWS, create a dedicated IAM user with only the permissions needed to 
         "ec2:DeleteKeyPair",
         "ec2:DeleteSecurityGroup",
         "ec2:DeleteVolume",
-        "ec2:DescribeImages",
-        "ec2:DescribeInstanceAttribute",
-        "ec2:DescribeInstances",
-        "ec2:DescribeInstanceTypes",
-        "ec2:DescribeKeyPairs",
-        "ec2:DescribeSecurityGroups",
-        "ec2:DescribeVolumes",
+        "ec2:Describe*",
         "ec2:DetachVolume",
         "ec2:ImportKeyPair",
         "ec2:RevokeSecurityGroupEgress",
@@ -107,7 +101,8 @@ When using AWS, create a dedicated IAM user with only the permissions needed to 
         "route53:GetChange",
         "route53:GetHostedZone",
         "route53:ListHostedZones",
-        "route53:ListResourceRecordSets"
+        "route53:ListResourceRecordSets",
+        "route53:ListTagsForResource"
       ],
       "Resource": "*"
     }

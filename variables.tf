@@ -1,9 +1,9 @@
-variable "provider" {
+variable "cloud_provider" {
   description = "Cloud provider to use: aws or digitalocean"
   type        = string
 
   validation {
-    condition     = contains(["aws", "digitalocean"], var.provider)
+    condition     = contains(["aws", "digitalocean"], var.cloud_provider)
     error_message = "Provider must be 'aws' or 'digitalocean'."
   }
 }

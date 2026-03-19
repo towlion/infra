@@ -43,7 +43,7 @@ tofu_vars() {
   local pub_key
   pub_key="$(cat "$KEY_PATH.pub")"
 
-  local vars=(-var "provider=$provider" -var "ssh_public_key=$pub_key")
+  local vars=(-var "cloud_provider=$provider" -var "ssh_public_key=$pub_key")
   if [ -n "$region" ]; then
     vars+=(-var "region=$region")
   fi
@@ -101,7 +101,7 @@ cmd_plan() {
   local pub_key
   pub_key="$(cat "$KEY_PATH.pub")"
 
-  local cmd=(tofu plan -var "provider=$provider" -var "ssh_public_key=$pub_key")
+  local cmd=(tofu plan -var "cloud_provider=$provider" -var "ssh_public_key=$pub_key")
   if [ -n "${REGION:-}" ]; then
     cmd+=(-var "region=$REGION")
   fi
@@ -130,7 +130,7 @@ cmd_apply() {
   local pub_key
   pub_key="$(cat "$KEY_PATH.pub")"
 
-  local cmd=(tofu apply -var "provider=$provider" -var "ssh_public_key=$pub_key")
+  local cmd=(tofu apply -var "cloud_provider=$provider" -var "ssh_public_key=$pub_key")
   if [ -n "${REGION:-}" ]; then
     cmd+=(-var "region=$REGION")
   fi
@@ -166,7 +166,7 @@ cmd_destroy() {
   local pub_key
   pub_key="$(cat "$KEY_PATH.pub")"
 
-  local cmd=(tofu destroy -var "provider=$provider" -var "ssh_public_key=$pub_key")
+  local cmd=(tofu destroy -var "cloud_provider=$provider" -var "ssh_public_key=$pub_key")
   if [ -n "${REGION:-}" ]; then
     cmd+=(-var "region=$REGION")
   fi
