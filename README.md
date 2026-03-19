@@ -224,6 +224,7 @@ ssh -i keys/towlion root@<server-ip>
 .env.local              # Cloud credentials (git-ignored)
 towlion-infra           # CLI entrypoint
 cloud-init.sh           # User-data script for data volume setup
+bootstrap-server.sh     # Post-provision bootstrap script
 main.tf                 # Root module — selects provider module
 variables.tf            # Input variables
 outputs.tf              # Server IP, SSH command, bootstrap command, nameservers

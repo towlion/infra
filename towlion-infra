@@ -34,23 +34,20 @@ ensure_ssh_key() {
   fi
 }
 
-tofu_vars() {
+build_var_flags() {
   local provider
   provider="$(get_provider)"
-  local region="${REGION:-}"
-  local domain="${DOMAIN:-}"
   ensure_ssh_key
   local pub_key
   pub_key="$(cat "$KEY_PATH.pub")"
 
-  local vars=(-var "cloud_provider=$provider" -var "ssh_public_key=$pub_key")
-  if [ -n "$region" ]; then
-    vars+=(-var "region=$region")
-  fi
-  if [ -n "$domain" ]; then
-    vars+=(-var "domain=$domain")
-  fi
-  echo "${vars[@]}"
+  TOFU_VAR_FLAGS=(-var "cloud_provider=$provider" -var "ssh_public_key=$pub_key")
+  [ -n "${REGION:-}" ] && TOFU_VAR_FLAGS+=(-var "region=$REGION")
+  [ -n "${DOMAIN:-}" ] && TOFU_VAR_FLAGS+=(-var "domain=$DOMAIN")
+}
+
+state_file() {
+  echo "terraform.$(get_provider).tfstate"
 }
 
 check_tofu() {
@@ -80,6 +77,13 @@ cmd_init() {
 
   ensure_ssh_key
   tofu init
+
+  if [ -f terraform.tfstate ]; then
+    echo ""
+    echo "Note: Found existing terraform.tfstate. To migrate, run:"
+    echo "  mv terraform.tfstate terraform.${provider}.tfstate"
+  fi
+
   echo ""
   echo "Initialized successfully. Next: ./towlion-infra plan"
 }
@@ -95,20 +99,8 @@ cmd_plan() {
 
   check_tofu
   load_env
-  local provider
-  provider="$(get_provider)"
-  ensure_ssh_key
-  local pub_key
-  pub_key="$(cat "$KEY_PATH.pub")"
-
-  local cmd=(tofu plan -var "cloud_provider=$provider" -var "ssh_public_key=$pub_key")
-  if [ -n "${REGION:-}" ]; then
-    cmd+=(-var "region=$REGION")
-  fi
-  if [ -n "${DOMAIN:-}" ]; then
-    cmd+=(-var "domain=$DOMAIN")
-  fi
-  "${cmd[@]}"
+  build_var_flags
+  tofu plan -state="$(state_file)" "${TOFU_VAR_FLAGS[@]}"
 }
 
 cmd_apply() {
@@ -124,22 +116,9 @@ cmd_apply() {
 
   check_tofu
   load_env
-  local provider
-  provider="$(get_provider)"
-  ensure_ssh_key
-  local pub_key
-  pub_key="$(cat "$KEY_PATH.pub")"
-
-  local cmd=(tofu apply -var "cloud_provider=$provider" -var "ssh_public_key=$pub_key")
-  if [ -n "${REGION:-}" ]; then
-    cmd+=(-var "region=$REGION")
-  fi
-  if [ -n "${DOMAIN:-}" ]; then
-    cmd+=(-var "domain=$DOMAIN")
-  fi
-  if [ -n "$auto_approve" ]; then
-    cmd+=(-auto-approve)
-  fi
+  build_var_flags
+  local cmd=(tofu apply -state="$(state_file)" "${TOFU_VAR_FLAGS[@]}")
+  [ -n "$auto_approve" ] && cmd+=(-auto-approve)
   "${cmd[@]}"
 
   echo ""
@@ -160,22 +139,9 @@ cmd_destroy() {
 
   check_tofu
   load_env
-  local provider
-  provider="$(get_provider)"
-  ensure_ssh_key
-  local pub_key
-  pub_key="$(cat "$KEY_PATH.pub")"
-
-  local cmd=(tofu destroy -var "cloud_provider=$provider" -var "ssh_public_key=$pub_key")
-  if [ -n "${REGION:-}" ]; then
-    cmd+=(-var "region=$REGION")
-  fi
-  if [ -n "${DOMAIN:-}" ]; then
-    cmd+=(-var "domain=$DOMAIN")
-  fi
-  if [ -n "$auto_approve" ]; then
-    cmd+=(-auto-approve)
-  fi
+  build_var_flags
+  local cmd=(tofu destroy -state="$(state_file)" "${TOFU_VAR_FLAGS[@]}")
+  [ -n "$auto_approve" ] && cmd+=(-auto-approve)
   "${cmd[@]}"
 
   echo ""
@@ -184,12 +150,14 @@ cmd_destroy() {
 
 cmd_status() {
   check_tofu
-  if [ ! -f terraform.tfstate ] && [ ! -f .terraform/terraform.tfstate ]; then
-    echo "No infrastructure provisioned."
+  load_env
+  local sf
+  sf="$(state_file)"
+  if [ ! -f "$sf" ]; then
+    echo "No infrastructure provisioned for $(get_provider)."
     return
   fi
-  load_env
-  tofu show
+  tofu show -state="$sf"
 }
 
 cmd_output() {
@@ -197,9 +165,11 @@ cmd_output() {
   load_env
 
   local ip ssh_cmd bootstrap_cmd
-  ip="$(tofu output -raw server_ip 2>/dev/null)" || { echo "No infrastructure provisioned."; return; }
-  ssh_cmd="$(tofu output -raw ssh_command 2>/dev/null)"
-  bootstrap_cmd="$(tofu output -raw bootstrap_command 2>/dev/null)"
+  local sf
+  sf="$(state_file)"
+  ip="$(tofu output -state="$sf" -raw server_ip 2>/dev/null)" || { echo "No infrastructure provisioned for $(get_provider)."; return; }
+  ssh_cmd="$(tofu output -state="$sf" -raw ssh_command 2>/dev/null)"
+  bootstrap_cmd="$(tofu output -state="$sf" -raw bootstrap_command 2>/dev/null)"
 
   echo ""
   echo "  Server IP:    $ip"
@@ -215,7 +185,7 @@ cmd_output() {
   echo ""
 
   local nameservers
-  nameservers="$(tofu output -json nameservers 2>/dev/null)" || true
+  nameservers="$(tofu output -state="$sf" -json nameservers 2>/dev/null)" || true
   if [ -n "$nameservers" ] && [ "$nameservers" != "[]" ]; then
     echo "  DNS Nameservers (set these at your domain registrar):"
     echo "$nameservers" | sed 's/[]"[]//g' | tr ',' '\n' | while read -r ns; do
