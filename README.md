@@ -180,7 +180,7 @@ Destroys all provisioned resources.
 ./towlion-infra status
 ```
 
-Displays the current Terraform state, or indicates if no infrastructure is provisioned.
+Lists provisioned resources, or indicates if no infrastructure is provisioned.
 
 #### `output` -- Display connection details
 
@@ -199,23 +199,103 @@ Shows the server IP, SSH command, bootstrap command, GitHub Actions secrets (`SE
 | `--domain <domain>` | Root domain for DNS zone and records (e.g. `example.com`) |
 | `-y`, `--auto-approve` | Skip interactive approval (`apply`, `destroy`) |
 
-## Typical workflow
+## Examples
+
+### Provision a DigitalOcean server with DNS
 
 ```sh
-# 1. Initialize with your provider
-./towlion-infra init --provider digitalocean
+# Initialize the provider and generate SSH key
+$ ./towlion-infra init --provider digitalocean
+Provider set to digitalocean.
+Generated SSH key: keys/towlion
+Initializing the backend...
+OpenTofu has been successfully initialized!
 
-# 2. Preview what will be created (optionally with DNS)
-./towlion-infra plan --domain example.com
+# Preview what will be created
+$ ./towlion-infra plan --domain example.com
+# ...
+Plan: 7 to add, 0 to change, 0 to destroy.
 
-# 3. Provision the server (with DNS)
-./towlion-infra apply --domain example.com
+# Provision the server
+$ ./towlion-infra apply --domain example.com
+# ... tofu creates resources ...
+Apply complete! Resources: 7 added, 0 changed, 0 destroyed.
 
-# 4. Connect to the server
-ssh -i keys/towlion root@<server-ip>
+=== Infrastructure provisioned ===
 
-# 5. Tear down when done
-./towlion-infra destroy
+  Server IP:    203.0.113.42
+  SSH Key:      keys/towlion
+
+  Connect:      ssh -i keys/towlion root@203.0.113.42
+
+  Bootstrap:    scp -i keys/towlion bootstrap-server.sh root@203.0.113.42:/tmp/ && ssh -i keys/towlion root@203.0.113.42 'bash /tmp/bootstrap-server.sh'
+
+  GitHub Secrets:
+    SERVER_HOST = 203.0.113.42
+    SERVER_SSH_KEY = <contents of keys/towlion>
+
+  DNS Nameservers (set these at your domain registrar):
+    ns1.digitalocean.com
+    ns2.digitalocean.com
+    ns3.digitalocean.com
+
+# Check what was provisioned
+$ ./towlion-infra status
+module.digitalocean.digitalocean_ssh_key.towlion
+module.digitalocean.digitalocean_volume.data
+module.digitalocean.digitalocean_droplet.server
+module.digitalocean.digitalocean_volume_attachment.data
+module.digitalocean.digitalocean_domain.zone[0]
+module.digitalocean.digitalocean_record.root[0]
+module.digitalocean.digitalocean_record.wildcard[0]
+module.digitalocean.digitalocean_firewall.server
+
+# Tear down when done
+$ ./towlion-infra destroy
+# ... tofu destroys resources ...
+Infrastructure destroyed.
+```
+
+### Provision an AWS server (no DNS)
+
+```sh
+$ ./towlion-infra init --provider aws
+Provider set to aws.
+Generated SSH key: keys/towlion
+OpenTofu has been successfully initialized!
+
+$ ./towlion-infra apply -y
+# ... tofu creates resources ...
+Apply complete! Resources: 5 added, 0 changed, 0 destroyed.
+
+=== Infrastructure provisioned ===
+
+  Server IP:    203.0.113.99
+  SSH Key:      keys/towlion
+
+  Connect:      ssh -i keys/towlion admin@203.0.113.99
+
+  Bootstrap:    scp -i keys/towlion bootstrap-server.sh admin@203.0.113.99:/tmp/ && ssh -i keys/towlion admin@203.0.113.99 'bash /tmp/bootstrap-server.sh'
+
+  GitHub Secrets:
+    SERVER_HOST = 203.0.113.99
+    SERVER_SSH_KEY = <contents of keys/towlion>
+```
+
+### Check infrastructure state
+
+```sh
+# When resources exist
+$ ./towlion-infra status
+module.aws.aws_key_pair.towlion
+module.aws.aws_security_group.server
+module.aws.aws_instance.server
+module.aws.aws_ebs_volume.data
+module.aws.aws_volume_attachment.data
+
+# When nothing is provisioned
+$ ./towlion-infra status
+No infrastructure provisioned for aws.
 ```
 
 ## Project structure
