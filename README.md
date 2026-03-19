@@ -195,8 +195,8 @@ Shows the server IP, SSH command, bootstrap command, GitHub Actions secrets (`SE
 | Flag | Description |
 |---|---|
 | `--provider <aws\|digitalocean>` | Cloud provider (required for `init`) |
-| `--region <region>` | Override default region |
-| `--domain <domain>` | Root domain for DNS zone and records (e.g. `example.com`) |
+| `--region <region>` | Override default region (`plan`, `apply`, `destroy`) |
+| `--domain <domain>` | Root domain for DNS zone and records (`plan`, `apply`, `destroy`) |
 | `-y`, `--auto-approve` | Skip interactive approval (`apply`, `destroy`) |
 
 ## Examples
