@@ -19,10 +19,6 @@ load_env() {
   # shellcheck disable=SC1090
   source "$ENV_FILE"
   set +a
-  # DigitalOcean provider expects DIGITALOCEAN_TOKEN
-  if [ -n "${DIGITALOCEAN_KEY:-}" ]; then
-    export DIGITALOCEAN_TOKEN="$DIGITALOCEAN_KEY"
-  fi
 }
 
 get_provider() {
