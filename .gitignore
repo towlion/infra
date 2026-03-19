@@ -7,3 +7,4 @@ keys/
 *.auto.tfvars
 .terraform.lock.hcl
 .provider
+.tfplan

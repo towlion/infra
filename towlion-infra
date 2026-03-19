@@ -8,6 +8,7 @@ ENV_FILE="$SCRIPT_DIR/.env.local"
 PROVIDER_FILE="$SCRIPT_DIR/.provider"
 KEY_DIR="$SCRIPT_DIR/keys"
 KEY_PATH="$KEY_DIR/towlion"
+PLAN_FILE="$SCRIPT_DIR/.tfplan"
 
 # --- Helpers ---
 
@@ -98,7 +99,9 @@ cmd_plan() {
   check_tofu
   load_env
   build_var_flags
-  tofu plan -state="$(state_file)" "${TOFU_VAR_FLAGS[@]}"
+  tofu plan -state="$(state_file)" -out="$PLAN_FILE" "${TOFU_VAR_FLAGS[@]}"
+  echo ""
+  echo "Plan saved. Run './towlion-infra apply' to execute."
 }
 
 cmd_apply() {
@@ -114,10 +117,19 @@ cmd_apply() {
 
   check_tofu
   load_env
-  build_var_flags
-  local cmd=(tofu apply -state="$(state_file)" "${TOFU_VAR_FLAGS[@]}")
-  [ -n "$auto_approve" ] && cmd+=(-auto-approve)
-  "${cmd[@]}"
+
+  if [ -f "$PLAN_FILE" ]; then
+    local cmd=(tofu apply -state="$(state_file)")
+    [ -n "$auto_approve" ] && cmd+=(-auto-approve)
+    cmd+=("$PLAN_FILE")
+    "${cmd[@]}"
+    rm -f "$PLAN_FILE"
+  else
+    build_var_flags
+    local cmd=(tofu apply -state="$(state_file)" "${TOFU_VAR_FLAGS[@]}")
+    [ -n "$auto_approve" ] && cmd+=(-auto-approve)
+    "${cmd[@]}"
+  fi
 
   echo ""
   echo "=== Infrastructure provisioned ==="
@@ -142,6 +154,7 @@ cmd_destroy() {
   [ -n "$auto_approve" ] && cmd+=(-auto-approve)
   "${cmd[@]}"
 
+  rm -f "$PLAN_FILE"
   echo ""
   echo "Infrastructure destroyed."
 }

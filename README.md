@@ -156,7 +156,7 @@ Sets the cloud provider, generates an SSH key pair (stored in `keys/towlion`), a
 ./towlion-infra plan [--region <region>] [--domain <domain>]
 ```
 
-Runs `tofu plan` to show what resources will be created, modified, or destroyed.
+Runs `tofu plan` to show what resources will be created, modified, or destroyed. Saves the plan to `.tfplan` so that a subsequent `apply` can execute it without repeating flags.
 
 #### `apply` -- Provision infrastructure
 
@@ -165,6 +165,8 @@ Runs `tofu plan` to show what resources will be created, modified, or destroyed.
 ```
 
 Creates the server, data volume, firewall, and SSH key. Prints connection details on completion.
+
+If a saved plan exists (from a prior `plan` command), `apply` uses it directly — no flags needed. Otherwise, flags are required as usual.
 
 #### `destroy` -- Tear down infrastructure
 
@@ -211,13 +213,15 @@ Generated SSH key: keys/towlion
 Initializing the backend...
 OpenTofu has been successfully initialized!
 
-# Preview what will be created
+# Preview what will be created (saves plan to .tfplan)
 $ ./towlion-infra plan --domain example.com
 # ...
 Plan: 7 to add, 0 to change, 0 to destroy.
 
-# Provision the server
-$ ./towlion-infra apply --domain example.com
+Plan saved. Run './towlion-infra apply' to execute.
+
+# Apply the saved plan (no flags needed)
+$ ./towlion-infra apply
 # ... tofu creates resources ...
 Apply complete! Resources: 7 added, 0 changed, 0 destroyed.
 
@@ -302,6 +306,7 @@ No infrastructure provisioned for aws.
 
 ```
 .env.local              # Cloud credentials (git-ignored)
+.tfplan                 # Saved tofu plan file (git-ignored)
 towlion-infra           # CLI entrypoint
 cloud-init.sh           # User-data script for data volume setup
 bootstrap-server.sh     # Post-provision bootstrap script

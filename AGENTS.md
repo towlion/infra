@@ -26,6 +26,7 @@ towlion-infra is a Bash CLI (`towlion-infra`) that wraps OpenTofu to provision a
 ```
 .env.local              # Credentials (git-ignored)
 .provider               # Current provider name (git-ignored)
+.tfplan                 # Saved tofu plan (git-ignored)
 towlion-infra           # CLI script
 cloud-init.sh           # Cloud-init user-data
 bootstrap-server.sh     # Post-provision bootstrap script
@@ -55,6 +56,7 @@ keys/                   # SSH keys (git-ignored)
 - Both provider modules must expose identical output names. If you add an output to one, add it to the other.
 - The `cloud-init.sh` script runs as root on first boot. It must handle both AWS and DO device naming conventions.
 - The CLI passes variables to tofu via `-var` flags, not tfvars files.
+- `plan` saves a binary plan file (`.tfplan`). `apply` consumes and deletes it if present; `destroy` deletes any stale plan file.
 - State files are per-provider (`terraform.aws.tfstate`, `terraform.digitalocean.tfstate`). The CLI passes `-state` automatically. If migrating from an older single `terraform.tfstate`, rename it to the provider-specific name.
 - DNS resources are count-gated on `var.domain != ""`. When `domain` is empty (default), no DNS resources are created.
 - DNS zones create root (`@`) and wildcard (`*`) A records. DigitalOcean uses fixed nameservers (`ns1-3.digitalocean.com`); AWS Route 53 assigns unique nameservers per hosted zone (only known after `apply`).
